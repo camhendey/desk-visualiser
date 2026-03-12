@@ -5,8 +5,6 @@ const MIN_OPEN = 40;
 const MAX_OPEN = 80;
 const DESK_DEPTH = 60;
 const DESK_HEIGHT = 75;
-const DRAWER_UNIT_MIN = 30;
-const DRAWER_UNIT_MAX = 70;
 
 export default function App() {
   const [openWidth, setOpenWidth] = useState(60);
