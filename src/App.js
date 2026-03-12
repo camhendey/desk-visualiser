@@ -57,7 +57,7 @@ export default function App() {
         {/* Header */}
         <div style={{ textAlign: "center", marginBottom: 36 }}>
           <div style={{ fontSize: 11, letterSpacing: 6, color: "#9a7a4a", textTransform: "uppercase", marginBottom: 6 }}>
-            Workshop Planner
+            Cameron Hendey
           </div>
           <h1 style={{ fontSize: 32, fontWeight: "normal", color: "#e8d5b0", margin: 0, letterSpacing: 1 }}>
             Wooden Desk Designer
