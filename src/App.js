@@ -1,4 +1,6 @@
-import { useState, useCallback } from "react";
+import { useState, useCallback, useRef } from "react";
+import jsPDF from "jspdf";
+import html2canvas from "html2canvas";
 
 const TOTAL_LENGTH = 110;
 const MIN_OPEN = 40;
@@ -12,6 +14,44 @@ export default function App() {
   const [drawerHeights, setDrawerHeights] = useState([15, 20, 25]);
   const [depth, setDepth] = useState(DESK_DEPTH);
   const [height, setHeight] = useState(DESK_HEIGHT);
+
+  const exportRef = useRef(null);
+
+  const handleExportPdf = useCallback(async () => {
+    if (!exportRef.current) return;
+
+    const canvas = await html2canvas(exportRef.current, {
+      backgroundColor: "#1a1208",
+      scale: 2,
+      useCORS: true,
+    });
+
+    const imgData = canvas.toDataURL("image/png");
+    const pdf = new jsPDF("p", "mm", "a4");
+
+    const pageWidth = pdf.internal.pageSize.getWidth();
+    const pageHeight = pdf.internal.pageSize.getHeight();
+
+    const imgProps = pdf.getImageProperties(imgData);
+    const margin = 10;
+    const maxWidth = pageWidth - margin * 2;
+    const maxHeight = pageHeight - margin * 2;
+
+    let imgWidth = maxWidth;
+    let imgHeight = (imgProps.height * imgWidth) / imgProps.width;
+
+    if (imgHeight > maxHeight) {
+      const scaleFactor = maxHeight / imgHeight;
+      imgWidth *= scaleFactor;
+      imgHeight *= scaleFactor;
+    }
+
+    const x = (pageWidth - imgWidth) / 2;
+    const y = (pageHeight - imgHeight) / 2;
+
+    pdf.addImage(imgData, "PNG", x, y, imgWidth, imgHeight);
+    pdf.save("desk-design.pdf");
+  }, []);
 
   const drawerUnitWidth = TOTAL_LENGTH - openWidth;
   const topThickness = 3;
@@ -53,16 +93,37 @@ export default function App() {
       color: "#e8d5b0",
       padding: "32px 24px",
     }}>
-      <div style={{ maxWidth: 900, margin: "0 auto" }}>
+      <div ref={exportRef} style={{ maxWidth: 900, margin: "0 auto" }}>
         {/* Header */}
-        <div style={{ textAlign: "center", marginBottom: 36 }}>
-          <div style={{ fontSize: 11, letterSpacing: 6, color: "#9a7a4a", textTransform: "uppercase", marginBottom: 6 }}>
-            Cameron Hendey
+        <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
+          <div style={{ textAlign: "left" }}>
+            <div style={{ fontSize: 11, letterSpacing: 6, color: "#9a7a4a", textTransform: "uppercase", marginBottom: 6 }}>
+              Cameron Hendey
+            </div>
+            <h1 style={{ fontSize: 32, fontWeight: "normal", color: "#e8d5b0", margin: 0, letterSpacing: 1 }}>
+              Wooden Desk Designer
+            </h1>
+            <div style={{ marginTop: 8, color: "#9a7a4a", fontSize: 14 }}>
+              Total length fixed at <strong style={{ color: "#c8924a" }}>110 cm</strong>
+            </div>
           </div>
-          <h1 style={{ fontSize: 32, fontWeight: "normal", color: "#e8d5b0", margin: 0, letterSpacing: 1 }}>
-            Wooden Desk Designer
-          </h1>
-          <div style={{ marginTop: 8, color: "#9a7a4a", fontSize: 14 }}>Total length fixed at <strong style={{color:"#c8924a"}}>110 cm</strong></div>
+          <button
+            type="button"
+            onClick={handleExportPdf}
+            style={{
+              padding: "10px 16px",
+              borderRadius: 6,
+              border: "1px solid #c8924a",
+              background: "#2a1a08",
+              color: "#e8d5b0",
+              fontSize: 13,
+              cursor: "pointer",
+              letterSpacing: 1,
+              textTransform: "uppercase",
+            }}
+          >
+            Export PDF
+          </button>
         </div>
 
         {/* SVG Preview */}
