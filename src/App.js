@@ -30,28 +30,119 @@ export default function App() {
     const pdf = new jsPDF("p", "mm", "a4");
 
     const pageWidth = pdf.internal.pageSize.getWidth();
-    const pageHeight = pdf.internal.pageSize.getHeight();
+    let pageHeight = pdf.internal.pageSize.getHeight();
 
+    const marginX = 12;
+    const marginTop = 16;
+
+    // Title & meta
+    pdf.setFontSize(14);
+    pdf.text("Wooden Desk Design", marginX, marginTop);
+    pdf.setFontSize(9);
+    pdf.text(`Total length: ${TOTAL_LENGTH} cm`, marginX, marginTop + 6);
+    pdf.text(
+      `Depth: ${depth} cm   Height: ${height} cm   Drawers: ${numDrawers}`,
+      marginX,
+      marginTop + 11
+    );
+
+    // Render image of desk design
     const imgProps = pdf.getImageProperties(imgData);
-    const margin = 10;
-    const maxWidth = pageWidth - margin * 2;
-    const maxHeight = pageHeight - margin * 2;
+    const imageTop = marginTop + 16;
+    const maxImageWidth = pageWidth - marginX * 2;
+    const maxImageHeight = pageHeight * 0.4;
 
-    let imgWidth = maxWidth;
+    let imgWidth = maxImageWidth;
     let imgHeight = (imgProps.height * imgWidth) / imgProps.width;
 
-    if (imgHeight > maxHeight) {
-      const scaleFactor = maxHeight / imgHeight;
+    if (imgHeight > maxImageHeight) {
+      const scaleFactor = maxImageHeight / imgHeight;
       imgWidth *= scaleFactor;
       imgHeight *= scaleFactor;
     }
 
-    const x = (pageWidth - imgWidth) / 2;
-    const y = (pageHeight - imgHeight) / 2;
+    const imgX = marginX;
+    const imgY = imageTop;
+    pdf.addImage(imgData, "PNG", imgX, imgY, imgWidth, imgHeight);
 
-    pdf.addImage(imgData, "PNG", x, y, imgWidth, imgHeight);
+    let yCursor = imgY + imgHeight + 10;
+
+    const ensureSpace = (needed = 10) => {
+      pageHeight = pdf.internal.pageSize.getHeight();
+      if (yCursor + needed > pageHeight - 12) {
+        pdf.addPage();
+        pageHeight = pdf.internal.pageSize.getHeight();
+        yCursor = marginTop;
+      }
+    };
+
+    // Configuration table
+    ensureSpace(30);
+    pdf.setFontSize(12);
+    pdf.text("Configuration", marginX, yCursor);
+    yCursor += 6;
+
+    pdf.setFontSize(9);
+    const drawerUnitWidth = TOTAL_LENGTH - openWidth;
+
+    const configRows = [
+      ["Open side width", `${openWidth} cm`],
+      ["Drawer unit width", `${drawerUnitWidth} cm`],
+      ["Desk depth", `${depth} cm`],
+      ["Desk height", `${height} cm`],
+      ["Number of drawers", `${numDrawers}`],
+    ];
+
+    configRows.forEach(([label, value]) => {
+      ensureSpace(6);
+      pdf.text(label, marginX, yCursor);
+      pdf.text(value, marginX + 70, yCursor);
+      yCursor += 5;
+    });
+
+    // Cut list table
+    ensureSpace(40);
+    pdf.setFontSize(12);
+    pdf.text("Cut List (Panels & Fronts)", marginX, yCursor);
+    yCursor += 6;
+
+    pdf.setFontSize(9);
+
+    const cutListRows = [
+      ["Desktop (top panel)", `${TOTAL_LENGTH} cm`, `${depth} cm`, "3 cm"],
+      ["Drawer unit — left side", `${height - 3} cm`, `${depth} cm`, "2 cm"],
+      ["Drawer unit — right side", `${height - 3} cm`, `${depth} cm`, "2 cm"],
+      ["Drawer unit — back panel", `${drawerUnitWidth} cm`, `${depth} cm`, "1.5 cm"],
+      ["Drawer unit — bottom", `${drawerUnitWidth - 4} cm`, `${depth - 2} cm`, "1.8 cm"],
+      ...drawerHeights.slice(0, numDrawers).map((dh, i) => [
+        `Drawer ${i + 1} front`,
+        `${drawerUnitWidth - 6} cm`,
+        `${dh} cm`,
+        "1.8 cm",
+      ]),
+    ];
+
+    const colX = [marginX, marginX + 60, marginX + 100, marginX + 130];
+
+    // Header
+    ensureSpace(8);
+    const headerLabels = ["Part", "Width", "Height", "Thickness"];
+    headerLabels.forEach((text, idx) => {
+      pdf.text(text, colX[idx], yCursor);
+    });
+    yCursor += 5;
+
+    // Rows
+    cutListRows.forEach(([part, width, heightVal, thick]) => {
+      ensureSpace(6);
+      [part, width, heightVal, thick].forEach((val, idx) => {
+        pdf.text(String(val), colX[idx], yCursor);
+      });
+      yCursor += 5;
+    });
+
     pdf.save("desk-design.pdf");
-  }, []);
+  }, [openWidth, depth, height, numDrawers, drawerHeights]);
 
   const drawerUnitWidth = TOTAL_LENGTH - openWidth;
   const topThickness = 3;
@@ -93,7 +184,7 @@ export default function App() {
       color: "#e8d5b0",
       padding: "32px 24px",
     }}>
-      <div ref={exportRef} style={{ maxWidth: 900, margin: "0 auto" }}>
+      <div style={{ maxWidth: 900, margin: "0 auto" }}>
         {/* Header */}
         <div style={{ display: "flex", alignItems: "center", justifyContent: "space-between", marginBottom: 24 }}>
           <div style={{ textAlign: "left" }}>
@@ -138,7 +229,12 @@ export default function App() {
           <div style={{ fontSize: 11, letterSpacing: 4, color: "#6a5030", textTransform: "uppercase", marginBottom: 16, textAlign: "center" }}>
             Front View
           </div>
-          <svg width={svgW} height={svgH + 30} style={{ display: "block", margin: "0 auto" }}>
+          <div ref={exportRef} style={{ display: "inline-block" }}>
+          <svg
+            width={svgW}
+            height={svgH + 30}
+            style={{ display: "block", margin: "0 auto" }}
+          >
             {/* Labels top */}
             <text x={40 + openWidth * scale / 2} y={22} textAnchor="middle" fill="#7a6040" fontSize={11} fontFamily="Georgia">
               Open — {openWidth} cm
@@ -223,6 +319,7 @@ export default function App() {
               110 cm total
             </text>
           </svg>
+          </div>
         </div>
 
         {/* Controls */}
